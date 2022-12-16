@@ -4,6 +4,8 @@ import { Chip8 } from "./components/Chip8";
 import { Button, TextField } from "@mui/material";
 import "./wasm_exec.js";
 
+import "./App.less";
+
 const FPS = 25;
 
 function initWasm() {
@@ -24,6 +26,10 @@ const App: FunctionComponent = () => {
     setDisplay(window.getDisplay());
   };
 
+  const startChip8 = () => {
+    window.load(script.replace(/\s+/g, ""));
+  };
+
   useEffect(() => {
     initWasm();
 
@@ -35,16 +41,29 @@ const App: FunctionComponent = () => {
   }, []);
 
   return (
-    <div className="App">
-      <TextField
-        label="Program Instructions"
-        multiline
-        maxRows={4}
-        value={script}
-        onChange={(v) => setScript(v.target.value)}
-      />
+    <div className="app">
+      <div className="main-panel">
+        <h1>CHIP-8 Virtual Machine</h1>
+        <p>Input your program script and click load to start</p>
 
-      <Button variant="contained">Load</Button>
+        <TextField
+          className="script-input"
+          label="Program Instructions"
+          multiline
+          rows={20}
+          size="small"
+          value={script}
+          onChange={(v) => setScript(v.target.value)}
+        />
+
+        <Button
+          className="load-button"
+          onClick={startChip8}
+          variant="contained"
+        >
+          Load
+        </Button>
+      </div>
 
       <Chip8
         display={display}

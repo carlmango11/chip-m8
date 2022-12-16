@@ -5,5 +5,5 @@ interface Props {
 }
 
 export const Display: FunctionComponent<Props> = ({ display }) => {
-  return null;
+  return <div className="display"></div>;
 };

@@ -14,7 +14,7 @@ export const Chip8: FunctionComponent<Props> = ({
   display,
 }) => {
   return (
-    <div>
+    <div className="chip-8">
       <Display display={display} />
       <Keyboard onPressed={onPressed} onUnpressed={onUnpressed} />
     </div>

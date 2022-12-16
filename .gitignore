@@ -3,3 +3,5 @@
 frontend/public/chip-8.wasm
 frontend/node_modules/
 frontend/build/
+frontend/src/*.css
+frontend/src/*.css.map
