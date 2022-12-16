@@ -1,3 +1,5 @@
 /ChipM8.iml
 .idea/
 frontend/public/chip-8.wasm
+frontend/node_modules/
+frontend/build/
