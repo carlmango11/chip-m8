@@ -1,4 +1,4 @@
-package wrapper
+package main
 
 import (
 	"encoding/hex"
@@ -6,7 +6,14 @@ import (
 	"syscall/js"
 )
 
-func CreateBindings() {
+func main() {
+	createBindings()
+
+	waitC := make(chan bool)
+	<-waitC
+}
+
+func createBindings() {
 	vm := chip8.New(nil)
 
 	loadFunc := js.FuncOf(func(this js.Value, args []js.Value) any {
