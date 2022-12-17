@@ -6,7 +6,7 @@ import "./wasm_exec.js";
 
 import "./App.less";
 
-const FPS = 1;
+const FPS = 25;
 
 function initWasm() {
   const go = new window.Go();
@@ -73,9 +73,5 @@ const App: FunctionComponent = () => {
     </div>
   );
 };
-
-function dec2bin(dec: number) {
-  return (dec >>> 0).toString(2);
-}
 
 export default App;

@@ -7,4 +7,4 @@ install_dev:
     fi
 
 build:
-	docker build . --tag chip-m8:latest
+	docker buildx build --platform=linux/amd64 . --tag chip-m8:latest
