@@ -6,7 +6,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      TAG: 273011490881.dkr.ecr.eu-west-1.amazonaws.com/chip-m8:$(date +%s)
+      TAG: 273011490881.dkr.ecr.eu-west-1.amazonaws.com/chip-m8:latest
       AWS_ACCESS_KEY_ID: AKIAT7EGAYBA5FUPQZC2
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: eu-west-1
