@@ -5,7 +5,7 @@ import { Display } from "./Display";
 interface Props {
   onPressed: (n: number) => void;
   onUnpressed: (n: number) => void;
-  display: number[];
+  display: string[];
 }
 
 export const Chip8: FunctionComponent<Props> = ({

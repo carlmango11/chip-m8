@@ -24,10 +24,29 @@
 
     .display {
       border: 1px solid black;
-      width: 400px;
-      height: 200px;
       margin-left: 50px;
       margin-top: 50px;
+      display: flex;
+      flex-direction: column;
+      width: 384px;
+
+      .row {
+        display: flex;
+        flex-direction: row;
+
+        .pixel {
+          height: 6px;
+          width: 6px;
+        }
+
+        .on {
+          background-color: #000;
+        }
+
+        .off {
+          background-color: #FFF;
+        }
+      }
     }
   }
 }

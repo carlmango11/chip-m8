@@ -1,6 +1,9 @@
 package display
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type Display struct {
 	screen [32]uint64
@@ -11,6 +14,15 @@ func New() *Display {
 }
 
 func (d *Display) State() [32]uint64 {
+	// debug
+	for i := range d.screen {
+		if i%2 == (time.Now().Second() % 2) {
+			d.screen[i] = 0xFF00FF00FF00FF00
+		} else {
+			d.screen[i] = 0x00FF00FF00FF00FF
+		}
+	}
+
 	return d.screen
 }
 

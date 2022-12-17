@@ -1,9 +1,24 @@
 import { FunctionComponent } from "react";
 
 interface Props {
-  display: number[];
+  display: string[];
 }
 
 export const Display: FunctionComponent<Props> = ({ display }) => {
-  return <div className="display"></div>;
+  const pixels = display.map((row, i) => {
+    const rowPixels = [];
+
+    for (let i = 0; i < 64; i++) {
+      const className = row[i] == "1" ? "pixel on" : "pixel off";
+      rowPixels.push(<span key={i} className={className} />);
+    }
+
+    return (
+      <span key={i} className="row">
+        {rowPixels.reverse()}
+      </span>
+    );
+  });
+
+  return <div className="display">{pixels}</div>;
 };

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/hex"
+	"fmt"
 	"github.com/carlmango11/chip-m8/backend/chip8"
 	"syscall/js"
 )
@@ -45,7 +46,7 @@ func createBindings() {
 		// doesn't support normal typed arrays, only interface{}
 		var result []interface{}
 		for _, row := range vm.Display() {
-			result = append(result, row)
+			result = append(result, fmt.Sprintf("%064b", row))
 		}
 
 		return result

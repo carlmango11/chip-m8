@@ -6,7 +6,7 @@ import "./wasm_exec.js";
 
 import "./App.less";
 
-const FPS = 25;
+const FPS = 1;
 
 function initWasm() {
   const go = new window.Go();
@@ -20,7 +20,7 @@ function initWasm() {
 
 const App: FunctionComponent = () => {
   const [script, setScript] = useState<string>("");
-  const [display, setDisplay] = useState<number[]>([]);
+  const [display, setDisplay] = useState<string[]>([]);
 
   const refreshDisplay = () => {
     setDisplay(window.getDisplay());
@@ -73,5 +73,9 @@ const App: FunctionComponent = () => {
     </div>
   );
 };
+
+function dec2bin(dec: number) {
+  return (dec >>> 0).toString(2);
+}
 
 export default App;

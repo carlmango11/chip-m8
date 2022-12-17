@@ -1,7 +1,7 @@
 declare global {
   export interface Window {
     Go: any;
-    getDisplay: () => number[];
+    getDisplay: () => string[];
     keyPressed: (n: number) => void;
     keyUnpressed: (n: number) => void;
     load: (script: string) => void;
