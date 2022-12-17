@@ -1,6 +1,9 @@
 package keyboard
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 type Keyboard struct {
 	mu      sync.Mutex
@@ -19,8 +22,10 @@ func (k *Keyboard) Press(n byte) {
 	defer k.mu.Unlock()
 
 	k.pressed[n] = true
+	fmt.Printf("pressed: %v\n", n)
 
 	if k.waiting != nil {
+		fmt.Printf("sending signal: %v\n", n)
 		k.waiting <- n
 		k.waiting = nil
 	}
@@ -47,5 +52,8 @@ func (k *Keyboard) Await() byte {
 	k.waiting = ch
 	k.mu.Unlock()
 
-	return <-ch
+	fmt.Printf("waiting\n")
+	n := <-ch
+	fmt.Printf("done %v\n", n)
+	return n
 }

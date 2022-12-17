@@ -1,11 +1,13 @@
 package display
 
 import (
+	"bytes"
 	"fmt"
-	"time"
+	"sync"
 )
 
 type Display struct {
+	mu     sync.Mutex
 	screen [32]uint64
 }
 
@@ -13,23 +15,24 @@ func New() *Display {
 	return &Display{}
 }
 
+func (d *Display) Clear() {
+	d.screen = [32]uint64{}
+}
+
 func (d *Display) State() [32]uint64 {
-	// debug
-	for i := range d.screen {
-		if i%2 == (time.Now().Second() % 2) {
-			d.screen[i] = 0xFF00FF00FF00FF00
-		} else {
-			d.screen[i] = 0x00FF00FF00FF00FF
-		}
-	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	return d.screen
 }
 
 func (d *Display) Draw(sprite byte, x, y byte) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	write := uint64(sprite) << 56
 
-	for i := byte(0); i < y; i++ {
+	for i := byte(0); i < x; i++ {
 		wrap := write&0x0001 == 1
 
 		write >>= 1
@@ -39,31 +42,26 @@ func (d *Display) Draw(sprite byte, x, y byte) {
 		}
 	}
 
-	if x >= 32 {
-		x -= 32
+	if y >= 32 {
+		y -= 32
 	}
 
-	fmt.Printf("\nWARNING: collision not impl")
-
-	d.screen[x] ^= write
+	d.screen[y] ^= write
 }
 
 func (d *Display) Print() {
-	for i := len(d.screen); i >= 0; i-- {
-		fmt.Printf("\n")
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
-		for j := 0; j < 64; j++ {
-			row := d.screen[i]
+	var buf bytes.Buffer
 
-			msb := row & 0x80
+	buf.WriteString("S===============================================================")
 
-			if msb == 1 {
-				fmt.Printf("\u25A0")
-			} else {
-				fmt.Printf(" ")
-			}
-
-			row <<= 1
-		}
+	for i := 0; i < len(d.screen); i++ {
+		buf.WriteString(fmt.Sprintf("\n%064b", d.screen[i]))
 	}
+
+	buf.WriteString("\nE===============================================================")
+
+	fmt.Printf("\n%v", buf.String())
 }

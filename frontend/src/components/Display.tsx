@@ -15,7 +15,7 @@ export const Display: FunctionComponent<Props> = ({ display }) => {
 
     return (
       <span key={i} className="row">
-        {rowPixels.reverse()}
+        {rowPixels}
       </span>
     );
   });

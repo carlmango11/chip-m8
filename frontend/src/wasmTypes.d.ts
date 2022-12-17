@@ -4,7 +4,7 @@ declare global {
     getDisplay: () => string[];
     keyPressed: (n: number) => void;
     keyUnpressed: (n: number) => void;
-    load: (script: string) => void;
+    loadScript: (script: string) => void;
   }
 }
 

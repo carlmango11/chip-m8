@@ -5,30 +5,35 @@ import (
 	"github.com/carlmango11/chip-m8/backend/chip8/keyboard"
 	"github.com/carlmango11/chip-m8/backend/chip8/ram"
 	"math/rand"
+	"time"
 )
+
+const timerInterval = time.Second / 60
 
 type CPU struct {
 	ram      *ram.RAM
 	display  *display.Display
 	keyboard *keyboard.Keyboard
 
+	lastTimerDecrement time.Time
+
 	pc ram.Address
 	sp byte
 
-	general [16]byte
-	i       ram.Address
-	vf      byte
-	dt      byte
-	st      byte
+	v  [16]byte
+	i  ram.Address
+	dt byte
+	st byte
 
 	stack [16]ram.Address
 }
 
-func New(ram *ram.RAM, display *display.Display, kb *keyboard.Keyboard) *CPU {
+func New(r *ram.RAM, display *display.Display, kb *keyboard.Keyboard) *CPU {
 	return &CPU{
-		ram:      ram,
+		ram:      r,
 		display:  display,
 		keyboard: kb,
+		pc:       ram.UserMemoryStart,
 	}
 }
 
@@ -36,14 +41,42 @@ func (c *CPU) Tick() {
 	hi := c.ram.Read(c.nextPC())
 	lo := c.ram.Read(c.nextPC())
 
-	opCode := (uint16(hi) << 8) & uint16(lo)
+	top := 0x00FF | uint16(hi)<<8
+	bottom := 0xFF00 | uint16(lo)
+
+	opCode := top & bottom
 
 	c.executeOpCode(opCode)
+	c.updateTimers()
+}
+
+func (c *CPU) updateTimers() {
+	// startup
+	if c.lastTimerDecrement.IsZero() {
+		c.lastTimerDecrement = time.Now()
+		return
+	}
+
+	now := time.Now()
+	since := now.Sub(c.lastTimerDecrement)
+
+	// note this technique probably only works because we're sure to tick faster than the timer interval
+	if since > timerInterval {
+		if c.st > 0 {
+			c.st--
+		}
+
+		if c.dt > 0 {
+			c.dt--
+		}
+
+		c.lastTimerDecrement = now
+	}
 }
 
 func (c *CPU) nextPC() ram.Address {
 	n := c.pc
-	n += 1
+	c.pc += 1
 
 	return n
 }
@@ -60,9 +93,9 @@ func (c *CPU) executeOpCode(opCode uint16) {
 			c.returnSub()
 		}
 	case 0x1000:
-		c.JP_NNN(asAddr(opCode))
+		c.JP_NNN(opCode)
 	case 0x2000:
-		c.CALL_NNN(asAddr(opCode))
+		c.CALL_NNN(opCode)
 	case 0x3000:
 		c.SE_KK(opCode)
 	case 0x4000:
@@ -78,23 +111,23 @@ func (c *CPU) executeOpCode(opCode uint16) {
 
 		switch bottom {
 		case 0x0000:
-			c.setRegisterFromOther(opCode)
+			c.LD_XY(opCode)
 		case 0x0001:
-			c.doRegisterOR(opCode)
+			c.OR_XY(opCode)
 		case 0x0002:
-			c.doRegisterAND(opCode)
+			c.AND_XY(opCode)
 		case 0x0003:
-			c.doRegisterXOR(opCode)
+			c.XOR_XY(opCode)
 		case 0x0004:
-			c.doRegisterADD(opCode)
+			c.ADD_XY(opCode)
 		case 0x0005:
-			c.doRegisterSUB(opCode)
+			c.SUB_XY(opCode)
 		case 0x0006:
-			c.doRegisterSHR(opCode)
+			c.SHR_XY(opCode)
 		case 0x0007:
-			c.doRegisterSUBN(opCode)
-		case 0x0008:
-			c.doRegisterSHL(opCode)
+			c.SUBN_XY(opCode)
+		case 0x000E:
+			c.SHL_XY(opCode)
 		}
 	case 0x9000:
 		c.skipIfNotEq(opCode)
@@ -138,25 +171,25 @@ func (c *CPU) executeOpCode(opCode uint16) {
 }
 
 func (c *CPU) FX65(opCode uint16) {
-	regA, _ := extractRegisters(opCode)
+	regX, _ := extractXY(opCode)
 
-	for i := byte(0); i <= regA; i++ {
-		c.general[i] = c.ram.Read(c.i + ram.Address(i))
+	for i := byte(0); i <= regX; i++ {
+		c.v[i] = c.ram.Read(c.i + ram.Address(i))
 	}
 }
 
 func (c *CPU) FX55(opCode uint16) {
-	regA, _ := extractRegisters(opCode)
+	regX, _ := extractXY(opCode)
 
-	for i := byte(0); i <= regA; i++ {
-		c.ram.Write(c.i+ram.Address(i), c.general[i])
+	for i := byte(0); i <= regX; i++ {
+		c.ram.Write(c.i+ram.Address(i), c.v[i])
 	}
 }
 
 func (c *CPU) FX33(opCode uint16) {
-	regA, _ := extractRegisters(opCode)
+	regX, _ := extractXY(opCode)
 
-	val := c.general[regA]
+	val := c.v[regX]
 
 	c.ram.Write(c.i, val/100)
 	c.ram.Write(c.i+1, val%100/10)
@@ -164,58 +197,58 @@ func (c *CPU) FX33(opCode uint16) {
 }
 
 func (c *CPU) FX29(opCode uint16) {
-	regA, _ := extractRegisters(opCode)
-	c.i = uint16(c.general[regA]) * 5
+	regX, _ := extractXY(opCode)
+	c.i = uint16(c.v[regX]) * 5
 }
 
 func (c *CPU) FX1E(opCode uint16) {
-	regA, _ := extractRegisters(opCode)
-	c.i += uint16(c.general[regA])
+	regX, _ := extractXY(opCode)
+	c.i += uint16(c.v[regX])
 }
 
 func (c *CPU) FX18(opCode uint16) {
-	regA, _ := extractRegisters(opCode)
-	c.st = c.general[regA]
+	regX, _ := extractXY(opCode)
+	c.st = c.v[regX]
 }
 
 func (c *CPU) FX15(opCode uint16) {
-	regA, _ := extractRegisters(opCode)
-	c.dt = c.general[regA]
+	regX, _ := extractXY(opCode)
+	c.dt = c.v[regX]
 }
 
 func (c *CPU) FX0A(opCode uint16) {
-	regA, _ := extractRegisters(opCode)
-	c.general[regA] = c.keyboard.Await()
+	regX, _ := extractXY(opCode)
+	c.v[regX] = c.keyboard.Await()
 }
 
 func (c *CPU) FX07(opCode uint16) {
-	regA, _ := extractRegisters(opCode)
-	c.general[regA] = c.dt
+	regX, _ := extractXY(opCode)
+	c.v[regX] = c.dt
 }
 
 func (c *CPU) EXA1(opCode uint16) {
-	regA, _ := extractRegisters(opCode)
+	regX, _ := extractXY(opCode)
 
-	if !c.keyboard.IsPressed(byte(regA)) {
+	if !c.keyboard.IsPressed(c.v[regX]) {
 		c.pc += 2
 	}
 }
 
 func (c *CPU) EX9E(opCode uint16) {
-	keyNum := (opCode & 0x0F00) >> 8
+	regX, _ := extractXY(opCode)
 
-	if c.keyboard.IsPressed(byte(keyNum)) {
+	if c.keyboard.IsPressed(c.v[regX]) {
 		c.pc += 2
 	}
 }
 
 func (c *CPU) DXYN(opCode uint16) {
-	regA, regB := extractRegisters(opCode)
+	regX, regY := extractXY(opCode)
 	n := opCode & 0x000F
 
 	for i := uint16(0); i < n; i++ {
-		x := c.general[regA]
-		y := c.general[regB]
+		x := c.v[regX]
+		y := c.v[regY]
 
 		sprite := c.ram.Read(c.i + i)
 
@@ -224,9 +257,9 @@ func (c *CPU) DXYN(opCode uint16) {
 }
 
 func (c *CPU) CXKK(opCode uint16) {
-	regA, _ := extractRegisters(opCode)
+	regX, _ := extractXY(opCode)
 
-	c.general[regA] = byte(rand.Intn(256)) & getKK(opCode)
+	c.v[regX] = byte(rand.Intn(256)) & getKK(opCode)
 }
 
 func (c *CPU) ANNN(opCode uint16) {
@@ -234,138 +267,146 @@ func (c *CPU) ANNN(opCode uint16) {
 }
 
 func (c *CPU) BNNN(opCode uint16) {
-	c.pc = asAddr(opCode) + uint16(c.general[0])
+	c.pc = asAddr(opCode) + uint16(c.v[0])
 }
 
 func (c *CPU) skipIfNotEq(opCode uint16) {
-	regA, regB := extractRegisters(opCode)
+	regX, regY := extractXY(opCode)
 
-	if c.general[regB] != c.general[regA] {
+	if c.v[regY] != c.v[regX] {
 		c.pc += 2
 	}
 }
 
-func (c *CPU) doRegisterSHL(opCode uint16) {
-	regA, _ := extractRegisters(opCode)
+func (c *CPU) SHL_XY(opCode uint16) {
+	regX, _ := extractXY(opCode)
 
-	if c.general[regA]&0x80 == 0x80 {
-		c.vf = 1
+	carry := c.v[regX]&0x80 == 0x80
+
+	c.v[regX] <<= 1
+
+	if carry {
+		c.v[0xF] = 1
 	} else {
-		c.vf = 0
+		c.v[0xF] = 0
 	}
-
-	c.general[regA] <<= 1
 }
 
-func (c *CPU) doRegisterSUBN(opCode uint16) {
-	regA, regB := extractRegisters(opCode)
+func (c *CPU) SUBN_XY(opCode uint16) {
+	regX, regY := extractXY(opCode)
 
-	if c.general[regB] > c.general[regA] {
-		c.vf = 1
+	carry := c.v[regY] > c.v[regX]
+
+	c.v[regX] = c.v[regY] - c.v[regX]
+
+	if carry {
+		c.v[0xF] = 1
 	} else {
-		c.vf = 0
+		c.v[0xF] = 0
 	}
-
-	c.general[regA] = c.general[regB] - c.general[regA]
 }
 
-func (c *CPU) doRegisterSHR(opCode uint16) {
-	regA, _ := extractRegisters(opCode)
+func (c *CPU) SHR_XY(opCode uint16) {
+	regX, _ := extractXY(opCode)
 
-	if c.general[regA]&0x001 == 1 {
-		c.vf = 1
+	carry := c.v[regX]&0x01 == 0x01
+
+	c.v[regX] >>= 1
+
+	if carry {
+		c.v[0xF] = 1
 	} else {
-		c.vf = 0
+		c.v[0xF] = 0
 	}
-
-	c.general[regA] >>= 1
 }
 
-func (c *CPU) doRegisterSUB(opCode uint16) {
-	regA, regB := extractRegisters(opCode)
+func (c *CPU) SUB_XY(opCode uint16) {
+	regX, regY := extractXY(opCode)
 
-	if c.general[regA] > c.general[regB] {
-		c.vf = 1
+	carry := c.v[regX] > c.v[regY]
+
+	c.v[regX] = c.v[regX] - c.v[regY]
+
+	if carry {
+		c.v[0xF] = 1
 	} else {
-		c.vf = 0
+		c.v[0xF] = 0
 	}
-
-	c.general[regA] = c.general[regA] - c.general[regB]
 }
 
-func (c *CPU) doRegisterADD(opCode uint16) {
-	regA, regB := extractRegisters(opCode)
+func (c *CPU) ADD_XY(opCode uint16) {
+	regX, regY := extractXY(opCode)
 
-	res := uint16(c.general[regA]) + uint16(c.general[regB])
+	res := uint16(c.v[regX]) + uint16(c.v[regY])
 
 	if res > 0xFF {
-		c.vf = 1
+		c.v[0xF] = 1
 	} else {
-		c.vf = 0
+		c.v[0xF] = 0
 	}
 
-	c.general[regA] = byte(res)
+	c.v[regX] = byte(res)
 }
 
-func (c *CPU) doRegisterXOR(opCode uint16) {
-	regA, regB := extractRegisters(opCode)
-	c.general[regA] = c.general[regA] ^ c.general[regB]
+func (c *CPU) XOR_XY(opCode uint16) {
+	regX, regY := extractXY(opCode)
+	c.v[regX] = c.v[regX] ^ c.v[regY]
 }
 
-func (c *CPU) doRegisterOR(opCode uint16) {
-	regA, regB := extractRegisters(opCode)
-	c.general[regA] = c.general[regA] | c.general[regB]
+func (c *CPU) OR_XY(opCode uint16) {
+	regX, regY := extractXY(opCode)
+	c.v[regX] = c.v[regX] | c.v[regY]
 }
 
-func (c *CPU) doRegisterAND(opCode uint16) {
-	regA, regB := extractRegisters(opCode)
-	c.general[regA] = c.general[regA] & c.general[regB]
+func (c *CPU) AND_XY(opCode uint16) {
+	regX, regY := extractXY(opCode)
+	c.v[regX] = c.v[regX] & c.v[regY]
 }
 
-func (c *CPU) setRegisterFromOther(opCode uint16) {
-	regA, regB := extractRegisters(opCode)
+func (c *CPU) LD_XY(opCode uint16) {
+	regX, regY := extractXY(opCode)
 
-	c.general[regA] = c.general[regB]
+	c.v[regX] = c.v[regY]
 }
 
 func (c *CPU) addToRegister(opCode uint16) {
-	regN := opCode & 0x0F00
-	c.general[regN] += byte(opCode & 0x00FF)
+	regX, _ := extractXY(opCode)
+	c.v[regX] += byte(opCode & 0x00FF)
 }
 
 func (c *CPU) LD_KK(opCode uint16) {
-	regN := opCode & 0x0F00
-	c.general[regN] = byte(opCode & 0x00FF)
+	regX, _ := extractXY(opCode)
+	c.v[regX] = byte(opCode & 0x00FF)
 }
 
 func (c *CPU) SNE_KK(opCode uint16) {
-	regN := opCode & 0x0F00
+	regX, _ := extractXY(opCode)
 	toCmp := getKK(opCode)
 
-	if c.general[regN] != toCmp {
+	if c.v[regX] != toCmp {
 		c.pc += 2
 	}
 }
 
 func (c *CPU) SE_KK(opCode uint16) {
-	regN := opCode & 0x0F00
+	regX, _ := extractXY(opCode)
 	toCmp := getKK(opCode)
 
-	if c.general[regN] == toCmp {
+	if c.v[regX] == toCmp {
 		c.pc += 2
 	}
 }
 
 func (c *CPU) SE_XY(opCode uint16) {
-	regA, regB := extractRegisters(opCode)
+	regX, regY := extractXY(opCode)
 
-	if c.general[regA] == c.general[regB] {
+	if c.v[regX] == c.v[regY] {
 		c.pc += 2
 	}
 }
 
 func (c *CPU) clearDisplay() {
-	panic("impl")
+	c.display.Clear()
 }
 
 func (c *CPU) returnSub() {
@@ -377,11 +418,14 @@ func (c *CPU) returnSub() {
 	}
 }
 
-func (c *CPU) JP_NNN(addr ram.Address) {
+func (c *CPU) JP_NNN(opCode uint16) {
+	addr := asAddr(opCode)
 	c.pc = addr
 }
 
-func (c *CPU) CALL_NNN(addr ram.Address) {
+func (c *CPU) CALL_NNN(opCode uint16) {
+	addr := asAddr(opCode)
+
 	c.sp++
 	c.stack[c.sp] = c.pc
 
@@ -400,9 +444,9 @@ func asAddr(full uint16) ram.Address {
 	return (full << 4) >> 4
 }
 
-func extractRegisters(opCode uint16) (byte, byte) {
-	regA := opCode & 0x0F00 >> 8
-	regB := opCode & 0x00F0 >> 4
+func extractXY(opCode uint16) (byte, byte) {
+	regX := opCode & 0x0F00 >> 8
+	regY := opCode & 0x00F0 >> 4
 
-	return byte(regA), byte(regB)
+	return byte(regX), byte(regY)
 }

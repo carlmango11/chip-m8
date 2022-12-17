@@ -1,8 +1,10 @@
 package ram
 
-import "fmt"
+import (
+	"fmt"
+)
 
-const scriptStart = 0x200
+const UserMemoryStart = 0x200
 
 type Address = uint16
 
@@ -17,7 +19,7 @@ func New(script []byte) *RAM {
 }
 
 func (r *RAM) Read(addr Address) byte {
-	if addr < 0x200 || addr > 0xFFF {
+	if addr > 0xFFF {
 		panic(fmt.Sprintf("cannot access %v", addr))
 	}
 
@@ -39,8 +41,12 @@ func initData(script []byte) [4096]byte {
 
 	// put program in place
 	for i, val := range script {
-		data[scriptStart+i] = val
+		data[UserMemoryStart+i] = val
 	}
+
+	// auto start debug
+	data[0x1FF] = 5
+	data[0x1FE] = 3
 
 	return data
 }

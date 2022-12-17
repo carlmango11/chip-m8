@@ -21,7 +21,7 @@
   },
   "scripts": {
     "start": "concurrently --kill-others \"less-watch-compiler --config less-watcher.config.json\" \"react-scripts start\"",
-    "build": "react-scripts build",
+    "build": "less-watch-compiler --config less-watcher.config.json; react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
