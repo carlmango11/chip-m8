@@ -1,4 +1,4 @@
-# Chip-8 Virtual Machine
+# CHIP-8 Interpreter
 
 Website that loads a CHIP-8 interpreter as a Web Assembly module and allows the user to either input their own program or select from some pre-loaded ones.
 
