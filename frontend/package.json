@@ -1,5 +1,5 @@
 {
-  "name": "ChipM8",
+  "name": "chip-m8",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -20,7 +20,7 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "concurrently --kill-others \"less-watch-compiler --config less-watcher.config.json\" \"react-scripts start\"",
+    "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -44,10 +44,8 @@
     ]
   },
   "devDependencies": {
-    "concurrently": "^7.6.0",
-    "less": "^4.1.3",
-    "less-watch-compiler": "^1.16.3",
-    "prettier": "^2.8.1"
+    "prettier": "^2.8.1",
+    "sass": "^1.57.0"
   },
   "proxy": "http://localhost:8080"
 }

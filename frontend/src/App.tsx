@@ -1,11 +1,10 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
-import "./App.css";
 import { Chip8 } from "./components/Chip8";
 import { Button, TextField } from "@mui/material";
 import "./wasm_exec.js";
 import { Library } from "./components/Library";
 
-import "./App.less";
+import "./App.scss";
 
 const FPS = 60;
 

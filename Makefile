@@ -7,4 +7,4 @@ install_dev:
     fi
 
 build:
-	docker buildx build --platform=linux/amd64 . --tag chip-m8:latest
+	docker buildx build --platform=linux/amd64 . --tag 273011490881.dkr.ecr.eu-west-1.amazonaws.com/chip-m8:latest
