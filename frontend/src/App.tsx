@@ -7,7 +7,7 @@ import { Library } from "./components/Library";
 
 import "./App.less";
 
-const FPS = 25;
+const FPS = 60;
 
 function initWasm() {
   const go = new window.Go();
@@ -54,7 +54,10 @@ const App: FunctionComponent = () => {
     <div className="app">
       <div className="main-panel">
         <h1>CHIP-8 Virtual Machine</h1>
-        <p>Input your program script and click load to start</p>
+        <p>
+          Input your program script and click load to start or select one from
+          the library.
+        </p>
 
         <Library onSelect={libraryScriptSelected} />
 

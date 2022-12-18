@@ -201,7 +201,7 @@ func TestCPU(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			cpu := New(ram.New(nil), display.New(), keyboard.New())
+			cpu := New(ConfigChip8, ram.New(nil), &display.Display{}, keyboard.New())
 
 			for reg, val := range tc.registers {
 				cpu.v[reg] = val
@@ -215,5 +215,67 @@ func TestCPU(t *testing.T) {
 
 			assert.Equal(t, tc.expectedVF, cpu.v[0xF])
 		})
+	}
+}
+
+func TestLoadToMemory(t *testing.T) {
+	c := New(Config{}, ram.New(nil), nil, nil)
+
+	c.cfg.MemoryIncrement = true
+	testLoadToMemory(t, c)
+	assert.Equal(t, uint16(0x203), c.i)
+
+	resetMemory(c.ram, 0x200, 0x202)
+
+	c.cfg.MemoryIncrement = false
+	testLoadToMemory(t, c)
+	assert.Equal(t, uint16(0x200), c.i)
+}
+
+func testLoadToMemory(t *testing.T, c *CPU) {
+	c.i = 0x200
+
+	c.v[0] = 0xA
+	c.v[1] = 0xB
+	c.v[2] = 0xC
+
+	c.executeOpCode(0xF255)
+
+	assert.Equal(t, byte(0xA), c.ram.Read(0x200))
+	assert.Equal(t, byte(0xB), c.ram.Read(0x201))
+	assert.Equal(t, byte(0xC), c.ram.Read(0x202))
+}
+
+func TestLoadFromMemory(t *testing.T) {
+	c := New(Config{}, ram.New(nil), nil, nil)
+
+	c.cfg.MemoryIncrement = true
+	testLoadFromMemory(t, c)
+	assert.Equal(t, uint16(0x203), c.i)
+
+	resetMemory(c.ram, 0x200, 0x202)
+
+	c.cfg.MemoryIncrement = false
+	testLoadFromMemory(t, c)
+	assert.Equal(t, uint16(0x200), c.i)
+}
+
+func testLoadFromMemory(t *testing.T, c *CPU) {
+	c.i = 0x200
+
+	c.ram.Write(0x200, 0xA)
+	c.ram.Write(0x201, 0xB)
+	c.ram.Write(0x202, 0xC)
+
+	c.executeOpCode(0xF265)
+
+	assert.Equal(t, byte(0xA), c.v[0])
+	assert.Equal(t, byte(0xB), c.v[1])
+	assert.Equal(t, byte(0xC), c.v[2])
+}
+
+func resetMemory(r *ram.RAM, from, to ram.Address) {
+	for a := from; a <= to; a++ {
+		r.Write(a, 0)
 	}
 }

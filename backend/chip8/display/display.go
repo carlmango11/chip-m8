@@ -1,18 +1,25 @@
 package display
 
 import (
-	"bytes"
-	"fmt"
 	"sync"
 )
 
+const (
+	height = 32
+	width  = 64
+)
+
 type Display struct {
+	clipping bool
+
 	mu     sync.Mutex
 	screen [32]uint64
 }
 
-func New() *Display {
-	return &Display{}
+func New(clipping bool) *Display {
+	return &Display{
+		clipping: clipping,
+	}
 }
 
 func (d *Display) Clear() {
@@ -26,42 +33,31 @@ func (d *Display) State() [32]uint64 {
 	return d.screen
 }
 
-func (d *Display) Draw(sprite byte, x, y byte) {
+func (d *Display) Draw(sprite byte, x, y byte) bool {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	write := uint64(sprite) << 56
+	x %= width
+	y %= height
 
-	for i := byte(0); i < x; i++ {
-		wrap := write&0x0001 == 1
+	write := uint64(sprite) << (width - 8)
+	write >>= x
 
-		write >>= 1
-
-		if wrap {
-			write |= 0x8000000000000000
-		}
-	}
-
-	if y >= 32 {
-		y -= 32
-	}
+	prevOnes := countOnes(d.screen[y])
 
 	d.screen[y] ^= write
+
+	return countOnes(d.screen[y]) < prevOnes
 }
 
-func (d *Display) Print() {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+// There's probably a more efficient way to do this
+func countOnes(n uint64) int {
+	var c int
 
-	var buf bytes.Buffer
-
-	buf.WriteString("S===============================================================")
-
-	for i := 0; i < len(d.screen); i++ {
-		buf.WriteString(fmt.Sprintf("\n%064b", d.screen[i]))
+	for n > 0 {
+		c++
+		n &= n - 1
 	}
 
-	buf.WriteString("\nE===============================================================")
-
-	fmt.Printf("\n%v", buf.String())
+	return c
 }

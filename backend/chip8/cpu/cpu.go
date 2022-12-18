@@ -10,7 +10,21 @@ import (
 
 const timerInterval = time.Second / 60
 
+type Config struct {
+	VFReset         bool
+	MemoryIncrement bool
+	ShiftY          bool
+}
+
+var ConfigChip8 = Config{
+	VFReset:         true,
+	MemoryIncrement: true,
+	ShiftY:          true,
+}
+
 type CPU struct {
+	cfg Config
+
 	ram      *ram.RAM
 	display  *display.Display
 	keyboard *keyboard.Keyboard
@@ -28,8 +42,9 @@ type CPU struct {
 	stack [16]ram.Address
 }
 
-func New(r *ram.RAM, display *display.Display, kb *keyboard.Keyboard) *CPU {
+func New(cfg Config, r *ram.RAM, display *display.Display, kb *keyboard.Keyboard) *CPU {
 	return &CPU{
+		cfg:      cfg,
 		ram:      r,
 		display:  display,
 		keyboard: kb,
@@ -88,9 +103,9 @@ func (c *CPU) executeOpCode(opCode uint16) {
 	case 0x0000:
 		switch opCode {
 		case 0x00E0:
-			c.clearDisplay()
+			c.CLS()
 		case 0x00EE:
-			c.returnSub()
+			c.RET()
 		}
 	case 0x1000:
 		c.JP_NNN(opCode)
@@ -105,7 +120,7 @@ func (c *CPU) executeOpCode(opCode uint16) {
 	case 0x6000:
 		c.LD_KK(opCode)
 	case 0x7000:
-		c.addToRegister(opCode)
+		c.ADD_KK(opCode)
 	case 0x8000:
 		bottom := opCode & 0x000F
 
@@ -130,13 +145,13 @@ func (c *CPU) executeOpCode(opCode uint16) {
 			c.SHL_XY(opCode)
 		}
 	case 0x9000:
-		c.skipIfNotEq(opCode)
+		c.SNE_XY(opCode)
 	case 0xA000:
-		c.ANNN(opCode)
+		c.LD_I(opCode)
 	case 0xB000:
-		c.BNNN(opCode)
+		c.JP_V0(opCode)
 	case 0xC000:
-		c.CXKK(opCode)
+		c.RND(opCode)
 	case 0xD000:
 		c.DXYN(opCode)
 	case 0xE000:
@@ -174,7 +189,16 @@ func (c *CPU) FX65(opCode uint16) {
 	regX, _ := extractXY(opCode)
 
 	for i := byte(0); i <= regX; i++ {
-		c.v[i] = c.ram.Read(c.i + ram.Address(i))
+		addr := c.i
+		if !c.cfg.MemoryIncrement {
+			addr += ram.Address(i)
+		}
+
+		c.v[i] = c.ram.Read(addr)
+
+		if c.cfg.MemoryIncrement {
+			c.i++
+		}
 	}
 }
 
@@ -182,7 +206,16 @@ func (c *CPU) FX55(opCode uint16) {
 	regX, _ := extractXY(opCode)
 
 	for i := byte(0); i <= regX; i++ {
-		c.ram.Write(c.i+ram.Address(i), c.v[i])
+		addr := c.i
+		if !c.cfg.MemoryIncrement {
+			addr += ram.Address(i)
+		}
+
+		c.ram.Write(addr, c.v[i])
+
+		if c.cfg.MemoryIncrement {
+			c.i++
+		}
 	}
 }
 
@@ -246,31 +279,39 @@ func (c *CPU) DXYN(opCode uint16) {
 	regX, regY := extractXY(opCode)
 	n := opCode & 0x000F
 
+	var collision bool
+
 	for i := uint16(0); i < n; i++ {
 		x := c.v[regX]
 		y := c.v[regY]
 
 		sprite := c.ram.Read(c.i + i)
 
-		c.display.Draw(sprite, x, y+byte(i))
+		collision = collision || c.display.Draw(sprite, x, y+byte(i))
+	}
+
+	if collision {
+		c.v[0xF] = 1
+	} else {
+		c.v[0xF] = 0
 	}
 }
 
-func (c *CPU) CXKK(opCode uint16) {
+func (c *CPU) RND(opCode uint16) {
 	regX, _ := extractXY(opCode)
 
 	c.v[regX] = byte(rand.Intn(256)) & getKK(opCode)
 }
 
-func (c *CPU) ANNN(opCode uint16) {
+func (c *CPU) LD_I(opCode uint16) {
 	c.i = asAddr(opCode)
 }
 
-func (c *CPU) BNNN(opCode uint16) {
+func (c *CPU) JP_V0(opCode uint16) {
 	c.pc = asAddr(opCode) + uint16(c.v[0])
 }
 
-func (c *CPU) skipIfNotEq(opCode uint16) {
+func (c *CPU) SNE_XY(opCode uint16) {
 	regX, regY := extractXY(opCode)
 
 	if c.v[regY] != c.v[regX] {
@@ -279,7 +320,11 @@ func (c *CPU) skipIfNotEq(opCode uint16) {
 }
 
 func (c *CPU) SHL_XY(opCode uint16) {
-	regX, _ := extractXY(opCode)
+	regX, regY := extractXY(opCode)
+
+	if c.cfg.ShiftY {
+		c.v[regX] = c.v[regY]
+	}
 
 	carry := c.v[regX]&0x80 == 0x80
 
@@ -307,7 +352,11 @@ func (c *CPU) SUBN_XY(opCode uint16) {
 }
 
 func (c *CPU) SHR_XY(opCode uint16) {
-	regX, _ := extractXY(opCode)
+	regX, regY := extractXY(opCode)
+
+	if c.cfg.ShiftY {
+		c.v[regX] = c.v[regY]
+	}
 
 	carry := c.v[regX]&0x01 == 0x01
 
@@ -350,17 +399,23 @@ func (c *CPU) ADD_XY(opCode uint16) {
 
 func (c *CPU) XOR_XY(opCode uint16) {
 	regX, regY := extractXY(opCode)
+
 	c.v[regX] = c.v[regX] ^ c.v[regY]
+	c.v[0xF] = 0
 }
 
 func (c *CPU) OR_XY(opCode uint16) {
 	regX, regY := extractXY(opCode)
+
 	c.v[regX] = c.v[regX] | c.v[regY]
+	c.v[0xF] = 0
 }
 
 func (c *CPU) AND_XY(opCode uint16) {
 	regX, regY := extractXY(opCode)
+
 	c.v[regX] = c.v[regX] & c.v[regY]
+	c.v[0xF] = 0
 }
 
 func (c *CPU) LD_XY(opCode uint16) {
@@ -369,7 +424,7 @@ func (c *CPU) LD_XY(opCode uint16) {
 	c.v[regX] = c.v[regY]
 }
 
-func (c *CPU) addToRegister(opCode uint16) {
+func (c *CPU) ADD_KK(opCode uint16) {
 	regX, _ := extractXY(opCode)
 	c.v[regX] += byte(opCode & 0x00FF)
 }
@@ -405,11 +460,11 @@ func (c *CPU) SE_XY(opCode uint16) {
 	}
 }
 
-func (c *CPU) clearDisplay() {
+func (c *CPU) CLS() {
 	c.display.Clear()
 }
 
-func (c *CPU) returnSub() {
+func (c *CPU) RET() {
 	c.pc = c.stack[c.sp]
 	c.sp--
 

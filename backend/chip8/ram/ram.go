@@ -20,13 +20,17 @@ func New(script []byte) *RAM {
 
 func (r *RAM) Read(addr Address) byte {
 	if addr > 0xFFF {
-		panic(fmt.Sprintf("cannot access %v", addr))
+		panic(fmt.Sprintf("cannot read %v", addr))
 	}
 
 	return r.data[addr]
 }
 
 func (r *RAM) Write(addr Address, val byte) {
+	if addr > 0xFFF {
+		panic(fmt.Sprintf("cannot write to %v", addr))
+	}
+
 	r.data[addr] = val
 }
 
@@ -45,8 +49,8 @@ func initData(script []byte) [4096]byte {
 	}
 
 	// auto start debug
-	//data[0x1FF] = 5
-	//data[0x1FE] = 3
+	data[0x1FF] = 4
+	data[0x1FE] = 1
 
 	return data
 }

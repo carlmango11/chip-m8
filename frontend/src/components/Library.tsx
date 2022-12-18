@@ -1,5 +1,11 @@
 import { FunctionComponent, useEffect, useState } from "react";
-import { MenuItem, Select, SelectChangeEvent } from "@mui/material";
+import {
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  SelectChangeEvent,
+} from "@mui/material";
 
 interface Props {
   onSelect: (script: string) => void;
@@ -39,13 +45,17 @@ export const Library: FunctionComponent<Props> = ({ onSelect }) => {
   }
 
   return (
-    <Select
-      className="library"
-      label="Library"
-      value={romName}
-      onChange={handleChange}
-    >
-      {items}
-    </Select>
+    <FormControl>
+      <InputLabel>Select a ROM</InputLabel>
+
+      <Select
+        className="library"
+        label="Library"
+        value={romName}
+        onChange={handleChange}
+      >
+        {items}
+      </Select>
+    </FormControl>
   );
 };

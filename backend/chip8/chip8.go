@@ -1,7 +1,6 @@
 package chip8
 
 import (
-	"fmt"
 	"github.com/carlmango11/chip-m8/backend/chip8/cpu"
 	"github.com/carlmango11/chip-m8/backend/chip8/display"
 	"github.com/carlmango11/chip-m8/backend/chip8/keyboard"
@@ -9,7 +8,17 @@ import (
 	"time"
 )
 
-const clockSpeed = 1e3 // 1Mhz
+const clockSpeed = 1e6 // 1Ghz
+
+type Config struct {
+	CPU             cpu.Config
+	DisplayClipping bool
+}
+
+var Chip8Cfg = Config{
+	CPU:             cpu.ConfigChip8,
+	DisplayClipping: false,
+}
 
 type Chip8 struct {
 	cpu      *cpu.CPU
@@ -19,8 +28,8 @@ type Chip8 struct {
 	clock    *time.Ticker
 }
 
-func New(script []byte) *Chip8 {
-	d := display.New()
+func New(script []byte, cfg Config) *Chip8 {
+	d := display.New(cfg.DisplayClipping)
 	r := ram.New(script)
 	k := keyboard.New()
 
@@ -28,7 +37,7 @@ func New(script []byte) *Chip8 {
 		ram:      r,
 		display:  d,
 		keyboard: k,
-		cpu:      cpu.New(r, d, k),
+		cpu:      cpu.New(cfg.CPU, r, d, k),
 		clock:    time.NewTicker(time.Second / clockSpeed),
 	}
 }
@@ -37,8 +46,6 @@ func (c *Chip8) Start() {
 	for range c.clock.C {
 		c.cpu.Tick()
 	}
-
-	fmt.Printf("\nchip-8 stopped")
 }
 
 func (c *Chip8) Stop() {

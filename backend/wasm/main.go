@@ -15,7 +15,7 @@ func main() {
 }
 
 func createBindings() {
-	vm := chip8.New(nil)
+	vm := chip8.New(nil, chip8.Chip8Cfg)
 
 	loadFunc := js.FuncOf(func(this js.Value, args []js.Value) any {
 		script, err := hex.DecodeString(args[0].String())
@@ -25,7 +25,7 @@ func createBindings() {
 
 		vm.Stop()
 
-		vm = chip8.New(script)
+		vm = chip8.New(script, chip8.Chip8Cfg)
 		go vm.Start()
 
 		return nil
