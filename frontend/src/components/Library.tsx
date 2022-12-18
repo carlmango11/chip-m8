@@ -5,12 +5,12 @@ interface Props {
   onSelect: (script: string) => void;
 }
 
-interface Library {
+interface LibraryData {
   [name: string]: string;
 }
 
 export const Library: FunctionComponent<Props> = ({ onSelect }) => {
-  const [library, setLibrary] = useState<Library>({});
+  const [library, setLibrary] = useState<LibraryData>({});
   const [romName, setRomName] = useState<string>("");
 
   const handleChange = (e: SelectChangeEvent) => {

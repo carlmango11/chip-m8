@@ -20,7 +20,7 @@ export const Keyboard: FunctionComponent<Props> = ({
       document.removeEventListener("keydown", keyPressed);
       document.removeEventListener("keyup", keyUnpressed);
     };
-  }, []);
+  }, [onPressed, onUnpressed]);
 
   const numbers = [];
   for (let i = 0; i < 4; i++) {
@@ -32,6 +32,7 @@ export const Keyboard: FunctionComponent<Props> = ({
 
       row.push(
         <div
+          key={n}
           className="key"
           onMouseDown={() => onPressed(n)}
           onMouseUp={() => onUnpressed(n)}
@@ -53,6 +54,7 @@ export const Keyboard: FunctionComponent<Props> = ({
 const keyHandler = (callback: (n: number) => void) => {
   return (event: KeyboardEvent) => {
     const n = parseInt(event.key, 16);
+
     if (n >= 0 && n <= 15) {
       callback(n);
     }

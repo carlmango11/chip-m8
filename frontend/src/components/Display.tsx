@@ -9,7 +9,7 @@ export const Display: FunctionComponent<Props> = ({ display }) => {
     const rowPixels = [];
 
     for (let i = 0; i < 64; i++) {
-      const className = row[i] == "1" ? "pixel on" : "pixel off";
+      const className = row[i] === "1" ? "pixel on" : "pixel off";
       rowPixels.push(<span key={i} className={className} />);
     }
 
