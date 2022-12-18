@@ -23,21 +23,29 @@ export const Keyboard: FunctionComponent<Props> = ({
   }, []);
 
   const numbers = [];
-  for (let i = 0; i < 16; i++) {
-    numbers.push(
-      <span
-        className="key"
-        onKeyUp={() => onUnpressed(i)}
-        onKeyDown={() => onPressed(i)}
-      >
-        {i}
-      </span>
-    );
+  for (let i = 0; i < 4; i++) {
+    let row = [];
+
+    for (let j = 0; j < 4; j++) {
+      const n = i * 4 + j;
+      const label = n.toString(16).toUpperCase();
+
+      row.push(
+        <div
+          className="key"
+          onMouseDown={() => onPressed(n)}
+          onMouseUp={() => onUnpressed(n)}
+        >
+          {label}
+        </div>
+      );
+    }
+    numbers.push(<div className="row">{row}</div>);
   }
-  return null;
+
   return (
     <div className="keyboard">
-      <div className="numbers">{numbers}</div>
+      <div className="wrapper">{numbers}</div>
     </div>
   );
 };

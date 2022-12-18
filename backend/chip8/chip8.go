@@ -43,6 +43,7 @@ func (c *Chip8) Start() {
 
 func (c *Chip8) Stop() {
 	c.clock.Stop()
+	c.display.Clear()
 }
 
 func (c *Chip8) PressKey(n byte) {

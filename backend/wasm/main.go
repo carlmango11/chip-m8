@@ -26,10 +26,7 @@ func createBindings() {
 		vm.Stop()
 
 		vm = chip8.New(script)
-
-		go func() {
-			vm.Start()
-		}()
+		go vm.Start()
 
 		return nil
 	})

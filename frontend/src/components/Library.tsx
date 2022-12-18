@@ -1,5 +1,5 @@
 import { FunctionComponent, useEffect, useState } from "react";
-import { MenuItem, Select } from "@mui/material";
+import { MenuItem, Select, SelectChangeEvent } from "@mui/material";
 
 interface Props {
   onSelect: (script: string) => void;
@@ -10,7 +10,15 @@ interface Library {
 }
 
 export const Library: FunctionComponent<Props> = ({ onSelect }) => {
-  const [libary, setLibrary] = useState<Library>({});
+  const [library, setLibrary] = useState<Library>({});
+  const [romName, setRomName] = useState<string>("");
+
+  const handleChange = (e: SelectChangeEvent) => {
+    const name = e.target.value;
+
+    setRomName(name);
+    onSelect(library[name]);
+  };
 
   useEffect(() => {
     const fetchLibrary = async () => {
@@ -22,14 +30,20 @@ export const Library: FunctionComponent<Props> = ({ onSelect }) => {
   }, []);
 
   let items = [];
-  for (const name in libary) {
-    items.push(<MenuItem value={libary[name]}>{name}</MenuItem>);
+  for (const name in library) {
+    items.push(
+      <MenuItem key={name} value={name}>
+        {name}
+      </MenuItem>
+    );
   }
 
   return (
     <Select
+      className="library"
       label="Library"
-      onChange={(e) => onSelect(e.target.value as string)}
+      value={romName}
+      onChange={handleChange}
     >
       {items}
     </Select>

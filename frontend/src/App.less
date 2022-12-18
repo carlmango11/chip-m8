@@ -14,18 +14,60 @@
     .load-button {
       margin-top: 20px;
     }
+
+    .library {
+      margin-bottom: 30px;
+    }
   }
 
   .chip-8 {
+    border-radius: 25px;
     margin-top: 40px;
     margin-left: 100px;
     border: 1px solid black;
     width: 500px;
+    background-color: #c1c1c1;
+
+    .heading {
+      color: black;
+      font-size: xx-large;
+      font-weight: bolder;
+      text-align: center;
+      margin-top: 20px;
+      margin-bottom: 20px;
+    }
+
+    .keyboard {
+      margin-top: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+
+      .key {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        cursor: pointer;
+        width: 50px;
+        height: 50px;
+        padding: 5px;
+        margin: 5px;
+        border: 1px solid black;
+        border-radius: 5px;
+        background-color: white;
+      }
+
+      .row {
+        display: flex;
+        flex-direction: row;
+      }
+    }
 
     .display {
       border: 1px solid black;
       margin-left: 50px;
-      margin-top: 50px;
       display: flex;
       flex-direction: column;
       width: 384px;
