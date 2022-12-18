@@ -45,8 +45,8 @@ func initData(script []byte) [4096]byte {
 	}
 
 	// auto start debug
-	data[0x1FF] = 5
-	data[0x1FE] = 3
+	//data[0x1FF] = 5
+	//data[0x1FE] = 3
 
 	return data
 }
