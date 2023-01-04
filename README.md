@@ -7,3 +7,5 @@ The interpreter and web server are written in Go.
 The frontend is written in Typescript using React with Material UI and SASS.
 
 The whole thing can be build as a docker image.
+
+![Alt Chip 8 running Connect Four](screenshot.png?raw=true "Connect Four example")
